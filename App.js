@@ -33,8 +33,21 @@ export default function App() {
     setLoading(true);
     setResult(null);
 
-    const response = await analyzeImage(selectedImage, apiKey);
-    setResult(response);
+    try {
+      const response = await analyzeImage(selectedImage, apiKey);
+
+      if (!response.success) {
+        alert(`Analysis failed: ${response.error}`);
+        setLoading(false);
+        return;
+      }
+
+      setResult(response);
+    } catch (error) {
+      alert(`Unexpected error: ${error.message}`);
+      console.error('Error analyzing image:', error);
+    }
+
     setLoading(false);
   };
 

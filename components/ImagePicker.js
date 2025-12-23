@@ -20,7 +20,7 @@ export default function ImagePicker({ onImageSelected, selectedImage }) {
     const result = await ImagePickerExpo.launchCameraAsync({
       mediaTypes: 'images',
       allowsEditing: false,
-      quality: 0.9,
+      quality: 0.3,
       base64: true,
     });
 
@@ -39,7 +39,7 @@ export default function ImagePicker({ onImageSelected, selectedImage }) {
     const result = await ImagePickerExpo.launchImageLibraryAsync({
       mediaTypes: 'images',
       allowsEditing: false,
-      quality: 0.9,
+      quality: 0.3,
       base64: true,
     });
 
