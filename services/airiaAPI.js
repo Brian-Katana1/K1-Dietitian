@@ -1,5 +1,6 @@
 const UPLOAD_URL = 'https://prodaus.api.airia.ai/api/upload';
 const PIPELINE_URL = 'https://prodaus.api.airia.ai/v2/PipelineExecution/9eeadf84-1394-4f64-9e68-bb262aeb3f3a';
+const DIAGNOSIS_PIPELINE_URL = 'https://prodaus.api.airia.ai/v2/PipelineExecution/cb40b6f8-4655-479b-978a-b9877b74c68b';
 
 export const analyzeImage = async (imageData, apiKey) => {
   try {
@@ -99,6 +100,101 @@ export const analyzeImage = async (imageData, apiKey) => {
     return { success: true, data };
   } catch (error) {
     console.error('Error in analyzeImage:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const getDiagnosis = async (mealData, userInput, apiKey) => {
+  try {
+    console.log('Starting diagnosis with:', {
+      mealCount: mealData.length,
+      userInput,
+    });
+
+    // Format meal data for the AI
+    const formattedMeals = mealData.map(meal => ({
+      name: meal.name,
+      portion: meal.portion,
+      calories: meal.calories,
+      nutrients: meal.nutrients,
+      timestamp: meal.timestamp,
+    }));
+
+    // Create prompt for diagnosis
+    const prompt = `User's concern: ${userInput}\n\nMeal history:\n${JSON.stringify(formattedMeals, null, 2)}\n\nBased on this dietary data, provide a comprehensive health diagnosis and recommendations.`;
+
+    const pipelineBody = {
+      userInput: prompt,
+      asyncOutput: false,
+      disableToolUse: true,
+    };
+
+    console.log('Sending to diagnosis pipeline');
+
+    const pipelineResponse = await fetch(DIAGNOSIS_PIPELINE_URL, {
+      method: 'POST',
+      headers: {
+        'X-API-KEY': apiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(pipelineBody),
+    });
+
+    if (!pipelineResponse.ok) {
+      const errorText = await pipelineResponse.text();
+      console.error('Diagnosis pipeline error:', errorText);
+
+      let userFriendlyMessage = 'Failed to generate diagnosis. ';
+      if (pipelineResponse.status === 401 || pipelineResponse.status === 403) {
+        userFriendlyMessage += 'API key is invalid or expired.';
+      } else if (pipelineResponse.status >= 500) {
+        userFriendlyMessage += 'Server error. Please try again later.';
+      } else {
+        userFriendlyMessage += `Error ${pipelineResponse.status}`;
+      }
+
+      throw new Error(userFriendlyMessage);
+    }
+
+    const data = await pipelineResponse.json();
+    console.log('Diagnosis response:', JSON.stringify(data, null, 2));
+
+    // Follow same parsing pattern as analyzeImage
+    if (data.$type === 'string' && data.result) {
+      // Try to parse the result as JSON to see if it's valid diagnosis data
+      try {
+        const parsedResult = JSON.parse(data.result);
+        // If parsing succeeds, it's likely a valid response
+        console.log('Successfully parsed diagnosis from result field');
+        return { success: true, data };
+      } catch (parseError) {
+        // If it's not JSON, it might be plain text diagnosis
+        console.log('Result is plain text diagnosis');
+        return { success: true, data };
+      }
+    }
+
+    // Check report for errors (same pattern as analyzeImage)
+    if (data.report) {
+      const reportKeys = Object.keys(data.report);
+      if (reportKeys.length > 0) {
+        const firstReport = data.report[reportKeys[0]];
+        if (firstReport.success === false) {
+          const errorMsg = firstReport.exceptionMessage ||
+                          data.result ||
+                          'Diagnosis generation failed.';
+          console.error('Pipeline step failed:', {
+            stepTitle: firstReport.stepTitle,
+            exceptionMessage: firstReport.exceptionMessage,
+          });
+          throw new Error(errorMsg);
+        }
+      }
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error in getDiagnosis:', error);
     return { success: false, error: error.message };
   }
 };

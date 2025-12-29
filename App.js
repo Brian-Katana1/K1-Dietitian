@@ -1,8 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import ImagePicker from './components/ImagePicker';
 import ResultDisplay from './components/ResultDisplay';
+import DiagnosisModal from './components/DiagnosisModal';
 import { analyzeImage } from './services/airiaAPI';
 import Constants from 'expo-constants';
 
@@ -11,8 +13,34 @@ export default function App() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [savedMeals, setSavedMeals] = useState([]);
+  const [diagnosisModalVisible, setDiagnosisModalVisible] = useState(false);
 
   const apiKey = Constants.expoConfig?.extra?.airiaApiKey || process.env.EXPO_PUBLIC_AIRIA_API_KEY;
+
+  // Load meals from AsyncStorage on app start
+  useEffect(() => {
+    loadMeals();
+  }, []);
+
+  const loadMeals = async () => {
+    try {
+      const storedMeals = await AsyncStorage.getItem('savedMeals');
+      if (storedMeals) {
+        setSavedMeals(JSON.parse(storedMeals));
+      }
+    } catch (error) {
+      console.error('Error loading meals:', error);
+    }
+  };
+
+  const saveMealsToStorage = async (meals) => {
+    try {
+      await AsyncStorage.setItem('savedMeals', JSON.stringify(meals));
+    } catch (error) {
+      console.error('Error saving meals:', error);
+      alert('Failed to save meal data');
+    }
+  };
 
   const handleImageSelected = (imageData) => {
     setSelectedImage(imageData);
@@ -52,10 +80,20 @@ export default function App() {
   };
 
   const handleSaveMeal = (meal) => {
-    setSavedMeals([...savedMeals, meal]);
+    const updatedMeals = [...savedMeals, meal];
+    setSavedMeals(updatedMeals);
+    saveMealsToStorage(updatedMeals);
     setResult(null);
     setSelectedImage(null);
     alert('Meal saved to your diet!');
+  };
+
+  const handleOpenDiagnosis = () => {
+    if (savedMeals.length === 0) {
+      alert('No meals to analyze. Please add meals first.');
+      return;
+    }
+    setDiagnosisModalVisible(true);
   };
 
   const formatTime = (timestamp) => {
@@ -133,6 +171,10 @@ export default function App() {
               ))}
             </View>
 
+            <TouchableOpacity style={styles.diagnosisButton} onPress={handleOpenDiagnosis}>
+              <Text style={styles.diagnosisButtonText}>Analyse My Diet</Text>
+            </TouchableOpacity>
+
             {savedMeals.map((meal, index) => (
               <View key={index} style={styles.mealCard}>
                 <View style={styles.mealHeader}>
@@ -152,6 +194,13 @@ export default function App() {
             ))}
           </View>
         )}
+
+        <DiagnosisModal
+          visible={diagnosisModalVisible}
+          onClose={() => setDiagnosisModalVisible(false)}
+          savedMeals={savedMeals}
+          apiKey={apiKey}
+        />
 
         <StatusBar style="auto" />
       </ScrollView>
@@ -289,5 +338,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#007AFF',
     fontWeight: '500',
+  },
+  diagnosisButton: {
+    backgroundColor: '#FF9500',
+    padding: 15,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginVertical: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  diagnosisButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
