@@ -120,13 +120,73 @@ export const getDiagnosis = async (mealData, userInput, apiKey) => {
       timestamp: meal.timestamp,
     }));
 
-    // Create prompt for diagnosis
-    const prompt = `User's concern: ${userInput}\n\nMeal history:\n${JSON.stringify(formattedMeals, null, 2)}\n\nBased on this dietary data, provide a comprehensive health diagnosis and recommendations.`;
+    // Create prompt for diagnosis with explicit JSON format instructions
+    const prompt = `You are a professional dietitian analyzing a patient's dietary intake and health concerns.
+
+User's concern: ${userInput}
+
+Recent meal history:
+${JSON.stringify(formattedMeals, null, 2)}
+
+Please analyze this dietary data and provide a comprehensive health diagnosis in the following JSON format:
+
+{
+  "overall_assessment": "excellent|good|fair|needs_improvement|concerning",
+  "analysis_period_days": number,
+  "clinical_overview": "Brief clinical summary",
+  "positive_findings": [
+    {
+      "habit": "Positive dietary habit",
+      "health_benefit": "Associated health benefit"
+    }
+  ],
+  "deficiencies": [
+    {
+      "nutrient_or_food_group": "Name",
+      "severity": "low|moderate|high",
+      "current_avg": number,
+      "recommended": number,
+      "unit": "g|mg|mcg",
+      "clinical_significance": "Why this matters"
+    }
+  ],
+  "clinical_correlations": [
+    {
+      "symptom_or_goal": "User's concern",
+      "dietary_factors": ["factor1", "factor2"],
+      "confidence": 0.0-1.0
+    }
+  ],
+  "medical_recommendations": {
+    "primary": {
+      "intervention": "Main recommendation",
+      "clinical_rationale": "Why this is important",
+      "specific_guidance": "Actionable steps",
+      "expected_timeline": "When to expect improvements"
+    },
+    "secondary": {
+      "intervention": "Secondary recommendation",
+      "clinical_rationale": "Supporting rationale"
+    }
+  },
+  "therapeutic_dishes": [
+    {
+      "dish_name": "Recommended dish",
+      "key_nutrients": ["nutrient1", "nutrient2"],
+      "therapeutic_benefit": "Health benefit",
+      "addresses_deficiency": "Which deficiency this helps"
+    }
+  ],
+  "follow_up_needed": true|false,
+  "disclaimer": "This is an AI-generated dietary analysis..."
+}
+
+Provide ONLY the JSON response, no additional text.`;
 
     const pipelineBody = {
       userInput: prompt,
       asyncOutput: false,
-      disableToolUse: true,
+      disableToolUse: false,
     };
 
     console.log('Sending to diagnosis pipeline');
@@ -158,6 +218,12 @@ export const getDiagnosis = async (mealData, userInput, apiKey) => {
 
     const data = await pipelineResponse.json();
     console.log('Diagnosis response:', JSON.stringify(data, null, 2));
+
+    // Check if result is empty
+    if (data.$type === 'string' && (!data.result || data.result.trim() === '')) {
+      console.error('Empty diagnosis result received');
+      throw new Error('The diagnosis pipeline returned an empty response. Please try again or contact support if the issue persists.');
+    }
 
     // Follow same parsing pattern as analyzeImage
     if (data.$type === 'string' && data.result) {
