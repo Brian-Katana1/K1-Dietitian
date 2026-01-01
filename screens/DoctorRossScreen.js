@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  Modal,
   View,
   Text,
   TextInput,
@@ -8,10 +7,17 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 import { getDiagnosis } from '../services/airiaAPI';
+import { useMeals } from '../contexts/MealsContext';
 
-export default function DiagnosisModal({ visible, onClose, savedMeals, apiKey }) {
+export default function DoctorRossScreen() {
+  const { savedMeals } = useMeals();
+  const apiKey = Constants.expoConfig?.extra?.airiaApiKey || process.env.EXPO_PUBLIC_AIRIA_API_KEY;
   const [userInput, setUserInput] = useState('');
   const [daysToAnalyze, setDaysToAnalyze] = useState('7');
   const [loading, setLoading] = useState(false);
@@ -66,17 +72,12 @@ export default function DiagnosisModal({ visible, onClose, savedMeals, apiKey })
     setLoading(false);
   };
 
-  const resetModal = () => {
+  const resetForm = () => {
     setUserInput('');
     setDaysToAnalyze('7');
     setLoading(false);
     setDiagnosis(null);
     setError(null);
-  };
-
-  const handleClose = () => {
-    resetModal();
-    onClose();
   };
 
   const getAssessmentColor = (assessment) => {
@@ -122,8 +123,8 @@ export default function DiagnosisModal({ visible, onClose, savedMeals, apiKey })
         return (
           <View>
             <Text style={styles.errorText}>Failed to parse diagnosis data</Text>
-            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-              <Text style={styles.closeButtonText}>Close</Text>
+            <TouchableOpacity style={styles.resetButton} onPress={resetForm}>
+              <Text style={styles.resetButtonText}>Try Again</Text>
             </TouchableOpacity>
           </View>
         );
@@ -142,8 +143,8 @@ export default function DiagnosisModal({ visible, onClose, savedMeals, apiKey })
       return (
         <View>
           <Text style={styles.errorText}>No diagnosis data available</Text>
-          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-            <Text style={styles.closeButtonText}>Close</Text>
+          <TouchableOpacity style={styles.resetButton} onPress={resetForm}>
+            <Text style={styles.resetButtonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
       );
@@ -373,29 +374,27 @@ export default function DiagnosisModal({ visible, onClose, savedMeals, apiKey })
           </View>
         )}
 
-        <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-          <Text style={styles.closeButtonText}>Close</Text>
+        <TouchableOpacity style={styles.resetButton} onPress={resetForm}>
+          <Text style={styles.resetButtonText}>New Analysis</Text>
         </TouchableOpacity>
       </View>
     );
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={handleClose}
-    >
-      <View style={styles.backdrop}>
-        <View style={styles.modalCard}>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <View style={styles.header}>
-              <Text style={styles.title}>Diet Analysis</Text>
-              <TouchableOpacity onPress={handleClose} style={styles.closeIcon}>
-                <Text style={styles.closeIconText}>✕</Text>
-              </TouchableOpacity>
-            </View>
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <Text style={styles.title}>Doctor Ross</Text>
+            <Text style={styles.subtitle}>AI-Powered Diet Analysis</Text>
+          </View>
 
             {!diagnosis && !loading && (
               <View>
@@ -405,7 +404,7 @@ export default function DiagnosisModal({ visible, onClose, savedMeals, apiKey })
                   value={userInput}
                   onChangeText={setUserInput}
                   placeholder="e.g., Feeling tired lately, stomach issues, etc."
-                  multiline
+                  multiline={true}
                   numberOfLines={4}
                 />
 
@@ -437,52 +436,40 @@ export default function DiagnosisModal({ visible, onClose, savedMeals, apiKey })
               </View>
             )}
 
-            {diagnosis && !loading && renderDiagnosisResult()}
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
+          {diagnosis && !loading && renderDiagnosisResult()}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  safeArea: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalCard: {
     backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
-    width: '100%',
-    maxHeight: '85%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 8,
+  },
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    paddingBottom: 40,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 30,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#333',
+    marginBottom: 5,
   },
-  closeIcon: {
-    padding: 5,
-  },
-  closeIconText: {
-    fontSize: 24,
+  subtitle: {
+    fontSize: 16,
     color: '#666',
-    fontWeight: '300',
   },
   label: {
     fontSize: 14,
@@ -886,13 +873,13 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 
-  closeButton: {
+  resetButton: {
     backgroundColor: '#007AFF',
     padding: 18,
     borderRadius: 12,
     alignItems: 'center',
   },
-  closeButtonText: {
+  resetButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
