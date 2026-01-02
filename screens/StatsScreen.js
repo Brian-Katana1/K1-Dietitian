@@ -7,6 +7,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import TodaysSummary from '../components/TodaysSummary';
 import MealList from '../components/MealList';
@@ -32,65 +33,70 @@ export default function StatsScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Today's Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Today's Summary</Text>
-        <TodaysSummary totals={todaysTotals} />
-      </View>
-
-      {/* Today's Meals */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Today's Meals</Text>
-        <MealList meals={todaysMeals} />
-      </View>
-
-      {/* Analyze Button */}
-      {savedMeals.length > 0 && (
-        <TouchableOpacity
-          style={styles.analyzeButton}
-          onPress={handleAnalyzePressed}
-        >
-          <Text style={styles.analyzeButtonText}>Analyze My Diet</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Weekly Overview Section */}
-      {weeklyStats.length > 0 && (
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Today's Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Weekly Overview</Text>
-          {weeklyStats.map((week, index) => (
-            <View key={index}>
-              <WeeklyStats weekData={week} />
-              {week.dailyBreakdown && week.dailyBreakdown.length > 0 && (
-                <WeeklyChart weekData={week} metric="calories" />
-              )}
-            </View>
-          ))}
+          <Text style={styles.sectionTitle}>Today's Summary</Text>
+          <TodaysSummary totals={todaysTotals} />
         </View>
-      )}
 
-      {/* Empty State */}
-      {savedMeals.length === 0 && (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyStateTitle}>No meals logged yet</Text>
-          <Text style={styles.emptyStateText}>
-            Use the Log tab to start tracking your meals
-          </Text>
+        {/* Today's Meals */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Today's Meals</Text>
+          <MealList meals={todaysMeals} />
         </View>
-      )}
-    </ScrollView>
+
+        {/* Analyze Button */}
+        {savedMeals.length > 0 && (
+          <TouchableOpacity
+            style={styles.analyzeButton}
+            onPress={handleAnalyzePressed}
+          >
+            <Text style={styles.analyzeButtonText}>Analyze My Diet</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Weekly Overview Section */}
+        {weeklyStats.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Weekly Overview</Text>
+            {weeklyStats.map((week, index) => (
+              <View key={index}>
+                <WeeklyStats weekData={week} />
+                {week.dailyBreakdown && week.dailyBreakdown.length > 0 && (
+                  <WeeklyChart weekData={week} metric="calories" />
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Empty State */}
+        {savedMeals.length === 0 && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateTitle}>No meals logged yet</Text>
+            <Text style={styles.emptyStateText}>
+              Use the Log tab to start tracking your meals
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  container: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,

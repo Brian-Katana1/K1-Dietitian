@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import ImagePicker from '../components/ImagePicker';
 import ResultDisplay from '../components/ResultDisplay';
@@ -77,49 +78,54 @@ export default function LogScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.header}>
-          <Text style={styles.title}>Log Meal</Text>
-          <Text style={styles.subtitle}>Take a photo to analyze your food</Text>
-        </View>
-
-        <ImagePicker
-          onImageSelected={handleImageSelected}
-          selectedImage={selectedImage}
-        />
-
-        {selectedImage && !analyzing && !result && (
-          <TouchableOpacity style={styles.analyzeButton} onPress={handleAnalyze}>
-            <Text style={styles.analyzeButtonText}>Analyze Image</Text>
-          </TouchableOpacity>
-        )}
-
-        {analyzing && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Analyzing image...</Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <Text style={styles.title}>Log Meal</Text>
+            <Text style={styles.subtitle}>Take a photo to analyze your food</Text>
           </View>
-        )}
 
-        {result && !analyzing && (
-          <ResultDisplay result={result} onSave={handleSaveMeal} />
-        )}
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <ImagePicker
+            onImageSelected={handleImageSelected}
+            selectedImage={selectedImage}
+          />
+
+          {selectedImage && !analyzing && !result && (
+            <TouchableOpacity style={styles.analyzeButton} onPress={handleAnalyze}>
+              <Text style={styles.analyzeButtonText}>Analyze Image</Text>
+            </TouchableOpacity>
+          )}
+
+          {analyzing && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={styles.loadingText}>Analyzing image...</Text>
+            </View>
+          )}
+
+          {result && !analyzing && (
+            <ResultDisplay result={result} onSave={handleSaveMeal} />
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  container: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
